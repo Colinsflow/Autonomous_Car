@@ -8,12 +8,12 @@ Senior Design
 Electrical Engineers:
   Colin Graves,
   Andrew Mokhtare,
-  Adham Obeid,
+  Adham Obeid
 
 Computer Engineers:
   Nitin Mandadi,
   Sara Alaraini,
-  Corey Jones,
+  Corey Jones
 
 Testbeds:
 -PiCar-X (x3) By Sunfounder
