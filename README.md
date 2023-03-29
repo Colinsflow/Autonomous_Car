@@ -29,6 +29,10 @@ Testbeds:
   GoPro Mount,
   Parallell Battery Wire
   
+-3D Printer
+Ender 3 V2
+PLA+/PLA
+  
 Budget:
 $5,000 
 
