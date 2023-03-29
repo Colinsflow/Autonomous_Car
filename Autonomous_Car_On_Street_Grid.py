@@ -27,10 +27,10 @@ from time import sleep
 import RPi.GPIO as GPIO
 
 config = {
-    "apiKey" : "76o1qRJhT5mxuUsDVJGGB1yQvA1llL7HTEKU0Z5m",
-    "authDomain" : "seniordesignproj-cef3d.firebaseapp.com",
-    "databaseURL" : "https://seniordesignproj-cef3d-default-rtdb.firebaseio.com",
-    "storageBucket" : "seniordesignproj-cef3d.appspot.com"
+    "apiKey" : "******************",
+    "authDomain" : "******************",
+    "databaseURL" : "**********************",
+    "storageBucket" : "***********************"
     }
 
 
