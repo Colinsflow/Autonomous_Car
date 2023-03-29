@@ -6,27 +6,27 @@ Electrical and Computer Engineering
 Senior Design
 
 Electrical Engineers:
-  Colin Graves
-  Andrew Mokhtare
-  Adham Obeid
+  Colin Graves,
+  Andrew Mokhtare,
+  Adham Obeid,
 
 Computer Engineers:
-  Nitin Mandadi
-  Sara Alaraini
-  Corey Jones
+  Nitin Mandadi,
+  Sara Alaraini,
+  Corey Jones,
 
 Testbeds:
 -PiCar-X (x3) By Sunfounder
  Modifications:
-  3D printed Upper Chassis (PLA+)
-  9-AXIS IMU (Adafruit)
-  2 IR Sensors
+  3D printed Upper Chassis (PLA+),
+  9-AXIS IMU (Adafruit),
+  2 IR Sensors,
   GoPro Mount
 
 -Traxxas E-Revo
  Modifications:
-  Raspberry Pi 4 Mount
-  GoPro Mount
+  Raspberry Pi 4 Mount,
+  GoPro Mount,
   Parallell Battery Wire
   
 Budget:
