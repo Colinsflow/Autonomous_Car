@@ -21,13 +21,17 @@ Testbeds:
   3D printed Upper Chassis (PLA+),
   9-AXIS IMU (Adafruit),
   2 IR Sensors,
-  GoPro Mount
+  GoPro Mount,
+  DC-DC converter,
+  Pi-Cluster,
+  Aruco Marker
 
 -Traxxas E-Revo
  Modifications:
   Raspberry Pi 4 Mount,
   GoPro Mount,
-  Parallell Battery Wire
+  Parallell Battery Wire,
+  DC-DC converter
   
 -3D Printer
 Ender 3 V2
