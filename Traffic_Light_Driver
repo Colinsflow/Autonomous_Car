@@ -1,0 +1,99 @@
+#include <Arduino_JSON.h>
+#include <time.h>
+#include "Firebase_Arduino_WiFiNINA.h"
+
+
+#define FIREBASE_HOST "seniordesignproj-cef3d-default-rtdb.firebaseio.com"
+#define FIREBASE_AUTH "76o1qRJhT5mxuUsDVJGGB1yQvA1llL7HTEKU0Z5m"
+
+#define WIFI_SSID "Fios-43YN2"
+#define WIFI_PASSWORD "make8266ham7778rad"
+
+FirebaseData firebaseData;
+
+String path = "/Lights";
+unsigned long wifiEpoch = 0;
+long currMillis, prevMillis;
+char timBuffer[64];
+
+int GREEN = 2;
+int YELLOW = 3;
+int RED = 4;
+int GREEN2 = 5;
+int YELLOW2 = 6;
+int RED2 = 7;
+int current_state = 0;
+int Ycnt = 1000;
+int Rcnt = 500;
+int LED_Status = 0;
+char str_north[6] = "north"; // Initialize the first string
+char str_east[5] = "east";
+char str_south[6] = "south"; // Initialize the first string
+char str_west[5] = "west";
+JSONVar myJsonDoc;
+
+void setup() {
+  pinMode(GREEN, OUTPUT); // set pin 2 as output 
+  pinMode(YELLOW, OUTPUT); // set pin 3 as output
+  pinMode(RED, OUTPUT); // set pin 4 as output
+  pinMode(GREEN2, OUTPUT); // set pin 5 as output
+  pinMode(YELLOW2, OUTPUT); // set pin 6 as output
+  pinMode(RED2, OUTPUT); // set pin 7 as output
+
+  Serial.begin(9600);
+
+
+
+  Serial.print("Connecting to WiFi…");
+  int status = WL_IDLE_STATUS;
+  while (status != WL_CONNECTED) {
+    status = WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    Serial.print(".");
+    delay(300);
+  }
+  Serial.print(" IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
+
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH, WIFI_SSID, WIFI_PASSWORD);
+  Firebase.reconnectWiFi(true);
+}
+
+void loop() {
+  currMillis = millis();
+  if (currMillis - prevMillis > 10000) {
+    prevMillis = currMillis;
+    if (LED_Status == 0){
+      LED_Status = 1;
+      
+      digitalWrite(GREEN, LOW);
+      digitalWrite(YELLOW, HIGH);
+      delay(Ycnt); //switch to yellow lights
+      digitalWrite(YELLOW, LOW);
+      digitalWrite(RED, HIGH);
+      delay(Rcnt); //time where both lights are red
+         
+      digitalWrite(GREEN2, HIGH);
+      digitalWrite(RED2, LOW);   
+      Firebase.setString(firebaseData, path + "/6", str_east);
+    }
+    else{
+      LED_Status = 0;
+      
+      digitalWrite(GREEN2, LOW);
+      digitalWrite(YELLOW2, HIGH);
+      delay(Ycnt); //switch to yellow lights
+      
+      digitalWrite(YELLOW2, LOW);
+      digitalWrite(RED2, HIGH);
+      delay(Rcnt); //time where both lights are red
+      
+      digitalWrite(GREEN, HIGH);
+      digitalWrite(RED, LOW);
+      Firebase.setString(firebaseData, path + "/6", str_north);
+      
+    }
+  }
+}
+
+
