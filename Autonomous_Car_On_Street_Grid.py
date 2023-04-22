@@ -10,13 +10,14 @@
     
     -Google Firebase Descision Making
     
-    -Adafruit 9-AXIS Inertail Measurement Unit; Left, Right, Forward Steering Alignment 
+    -Adafruit 9-AXIS Inertail Measurement Unit Forward Steering Alignment
     
-    -Dual IR Wing Sensors For Lane Detection
+    -Line Following program for Picar-X  
 
+    -Dual IR Wing Sensors For Lane Detection
     
 '''
-
+import threading
 import board
 import adafruit_bno055
 import numpy as np
@@ -74,6 +75,7 @@ right_wing = 17
 steer = 0
 direction_index = 0
 wheel_enc = 22
+extra_ticks = 0
 #direction_array = ['south', 'left', 'straight' ,'right','left','straight' ,'end']
 direction_array = db.child("overhead").child('path').get().val()
 
@@ -90,15 +92,23 @@ pulse_count = 0
 total_distance = 0
 
 # Interrupt handler for pulse events
+
 def pulse_handler(channel):
     global pulse_count
     pulse_count += 1
-    distance_travel = int(pulse_count * .72)
-    #db.child("ID5").child("data").update({"distance":distance_travel})
+    #distance_travel = int(pulse_count * .72)
+    
 
 # Set up interrupt on rising edge of pulse signal
 GPIO.add_event_detect(wheel_enc, GPIO.RISING, callback=pulse_handler)
 
+def calculate_distance():
+    global distance_travel
+    global pulse_count
+    while True:
+        distance_travel = (pulse_count / 20.0)*(0.0635*3.141592653589793)
+        db.child("ID6").child("data").update({"distance":distance_travel})
+        time.sleep(0.1)
 
     
 def Calib_ang():
@@ -124,7 +134,7 @@ def Calib_ang():
                 if euler_angle >= innit_angle:
                     rotate = "left"
                 elif euler_angle <= innit_angle:
-                    rotate = "right" 
+                    rotate = "right"
                 if euler_angle <= innit_angle + rotate_tol and euler_angle >= innit_angle - rotate_tol:
                     rotate = "done"
                     initial_straight()
@@ -150,18 +160,18 @@ def Calib_ang():
         rotate_cnt +=1
         if rotate_cnt == rotate_sharpness*2 +1:
            rotate_cnt = 0
-           
-    
+
 
 def outHandle():
-    prev_subsquare = 0
+    
     global last_state, current_state, direction_index, orientation
     #read the firebase descision
     #db.child("Traxxas").child("ID5").set(orientation)
+
+    traff_sense = int(db.child("ID6").child("location").child("traffic sensor").get().val())
     
-    subsquare = int(db.child("ID6").child("location").child("subsquare").get().val())
-    print(subsquare)
-    if  subsquare >= 2 and subsquare <= 15 and subsquare != 4 and subsquare != 13:
+    print(str(traff_sense) + " traffic Sensor")
+    if  traff_sense == 7 or traff_sense == 6 or traff_sense == 11 or traff_sense == 10:
         traffic_read = 1
         
     else:
@@ -179,7 +189,7 @@ def outHandle():
         if traffic_read == 0:
             straight_call()
         else:
-            straight_read(prev_subsquare)
+            straight_read(traff_sense)
     elif immediate_direction == 'right':
         right()
     elif immediate_direction == 'end':
@@ -190,7 +200,7 @@ def outHandle():
     else:
         left()
     
-    prev_subsquare = subsquare
+    
            
     #steer the direction until finding the new line
 def orientate():
@@ -205,149 +215,86 @@ def orientate():
         innit_angle = 301
     return innit_angle
 
-def straight_read(subsquare):
+def straight_read(traff_sense):
     #straight method implemented with orientation global var.
-    global orientation, pulse_count
+    global orientation, pulse_count, extra_ticks
     print('straight read')
     px.forward(5)
     initial_pulse = pulse_count
     str8_dur = 0
     end = 0
+    trigger = "none"
     time_stopped = 0
+    trafficlight_str = '0'
+    check_pulses = 10
+    
     innit_angle = None
     innit_angle = orientate()
     if orientation == 0 or orientation == 2:  
-        travel_ticks = 46
+        travel_ticks = 36
     else:
-        travel_ticks = 42
+        travel_ticks = 32
     
-    while (pulse_count - initial_pulse) < travel_ticks:
-        #LIGHT NUMBER 11#
-        if subsquare == 12 or subsquare == 7:
-            trafficlight_str = "11"
-            LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-            if orientation == 0:
-                if LED_STATE == 'south':
-                    print('stopped south #11')
-                    px.stop()
-                    while True:
-                        LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-                        if LED_STATE == 'south':
-                            time_stopped+=1
-                        else:
-                            print(time_stopped)
-                            time_stopped = 0
-                            px.forward(5)
-                            break
-            elif orientation == 3: 
-                if LED_STATE == 'west':
-                    print('stopped west #11')
-                    px.stop()
-                    while True:
-                        LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-                        if LED_STATE == 'west':
-                            time_stopped+=1
-                        else:
-                            print(time_stopped)
-                            time_stopped = 0
-                            px.forward(5)
-                            break
-            
-        #LIGHT NUMBER 10#
-        elif subsquare == 14 or subsquare == 11:
-            trafficlight_str = "10"
-            LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-            if orientation == 2:
-                if LED_STATE == 'north':
-                    print('stopped north #10')
-                    px.stop()
-                    while True:
-                        LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-                        if LED_STATE == 'north':
-                            time_stopped+=1
-                        else:
-                            print(time_stopped)
-                            time_stopped = 0
-                            px.forward(5)
-                            break
-            elif orientation == 3: 
-                if LED_STATE == 'west':
-                    print('stopped west #10')
-                    px.stop()
-                    while True:
-                        LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-                        if LED_STATE == 'west':
-                            time_stopped+=1
-                        else:
-                            print(time_stopped)
-                            time_stopped = 0
-                            px.forward(5)
-                            break
-                    
-        #LIGHT NUMBER 7#
-        elif subsquare == 6 or subsquare == 3:
-            trafficlight_str = "7"
-            LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-            if orientation == 1:
-                if LED_STATE == 'east':
-                    px.stop()
-                    print('stopped east #7')
-                    while True:
-                        LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-                        if LED_STATE == 'east':
-                            time_stopped+=1
-                        else:
-                            print(time_stopped)
-                            time_stopped = 0
-                            px.forward(5)
-                            break
-            elif orientation == 0: 
-                if LED_STATE == 'south':
-                    px.stop()
-                    print('stopped south #7')
-                    while True:
-                        LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-                        if LED_STATE == 'south':
-                            time_stopped+=1
-                        else:
-                            print(time_stopped)
-                            time_stopped = 0
-                            px.forward(5)
-                            break
-            
-        #LIGHT NUMBER 6#
-        elif subsquare == 5 or subsquare == 10:
-            trafficlight_str = "6"
-        LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-        if orientation == 2:
-            if LED_STATE == 'north':
-                print('stopped north #6')
-                px.stop()
-                while True:
-                    LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-                    if LED_STATE == 'north':
-                        time_stopped+=1
-                    else:
-                        print(time_stopped)
-                        time_stopped = 0
-                        px.forward(5)
-                        break
-        elif orientation == 1: 
-            if LED_STATE == 'east':
-                print('stopped east #6')
-                px.stop()
-                while True:
-                    LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
-                    if LED_STATE == 'east':
-                        time_stopped+=1
-                    else:
-                        print(time_stopped)
-                        time_stopped = 0
-                        px.forward(5)
-                        break
+    while (pulse_count - initial_pulse) < check_pulses:
         
-
-        subsquare = db.child("ID6").child("location").child("subsquare").get().val()
+        if orientation == 0:
+            #westbound
+            if traff_sense == 12:
+                #traff 11
+                trafficlight_str = "11"
+                trigger = "south"
+            elif traff_sense == 11:
+                #traff 10
+                trafficlight_str = "10"
+                trigger = "north"
+        elif orientation == 1:
+            #northbound
+            if traff_sense == 14:
+                #traff 10
+                trafficlight_str = "10"
+                trigger = "west"
+            elif traff_sense == 10:
+                #traff 6
+                trafficlight_str = "6"
+                trigger = "east"
+        elif orientation == 2:
+            #eastbound
+            if traff_sense == 5:
+                #traff 6
+                trafficlight_str = "6"
+                trigger = "north"
+            elif traff_sense == 6:
+                #traff 7
+                trafficlight_str = "7"
+                trigger = "south"
+        elif orientation == 3:
+            #southbound
+            if traff_sense == 3:
+                #traff 7
+                trafficlight_str = "7"
+                trigger = "east"
+            elif traff_sense == 7:
+                #traff 11 
+                trafficlight_str = "11"
+                trigger = "west"
+        
+        LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
+        if trigger == LED_STATE:
+            print("stopped at" + trafficlight_str + "for\n")
+            px.stop()
+            while True:
+                LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
+                #print(LED_STATE)
+                if LED_STATE == trigger:
+                    time_stopped+=1
+                else:
+                    print(str(time_stopped) + "ticks")
+                    time_stopped = 0
+                    px.forward(5)
+                    print(str(pulse_count - initial_pulse))
+                    extra_ticks = check_pulses - (pulse_count - initial_pulse)
+                    break
+        
    
         if GPIO.input(left_wing) == 1 or GPIO.input(right_wing) == 1:
             escapelines_fwd()    
@@ -366,7 +313,30 @@ def straight_read(subsquare):
                     px.set_dir_servo_angle(-5)
                 else:
                     px.set_dir_servo_angle(0)
-    outHandle()           
+    print(str(extra_ticks) + "extra ticks")
+
+    while (pulse_count - initial_pulse) < travel_ticks + extra_ticks:
+        
+        if GPIO.input(left_wing) == 1 or GPIO.input(right_wing) == 1:
+            escapelines_fwd()    
+        #euler angle consistency
+        if (sensor.euler is not None):
+            sensoreuler = sensor.euler[0]
+            if sensoreuler is not None:    
+                #db.child("traxxas").child("ID5").update({"Orientation":sensoreuler})
+                if int(innit_angle - sensoreuler) >= 2:
+                    px.set_dir_servo_angle(10)
+                elif int(innit_angle - sensoreuler) >= 1:
+                    px.set_dir_servo_angle(5)
+                elif int(innit_angle - sensoreuler) <= -2:
+                    px.set_dir_servo_angle(-10)
+                elif int(innit_angle - sensoreuler) <= -1:
+                    px.set_dir_servo_angle(-5)
+                else:
+                    px.set_dir_servo_angle(0)
+    print(str(pulse_count - initial_pulse))
+    outHandle()                          
+
 def straight_call():
     #straight method implemented with orientation global var.
     global orientation, pulse_count
@@ -400,6 +370,7 @@ def straight_call():
                     px.set_dir_servo_angle(-5)
                 else:
                     px.set_dir_servo_angle(0)
+    print(str(pulse_count - initial_pulse))
     outHandle()           
 
 def straight():
@@ -443,6 +414,7 @@ def straight():
                     px.set_dir_servo_angle(-5)
                 else:
                     px.set_dir_servo_angle(0)
+    print(str(pulse_count - initial_pulse)+"total ticks after read")
     outHandle()
     
 def initial_straight():
@@ -458,7 +430,7 @@ def initial_straight():
     if orientation == 0 or orientation == 2:  
         travel_ticks = 35
     else:
-        travel_ticks = 30
+        travel_ticks = 25
     while (pulse_count - initial_pulse) <= travel_ticks :
         #end = db.child("traxxas").child("end").get()
         #print(end.val())
@@ -483,6 +455,7 @@ def initial_straight():
                     px.set_dir_servo_angle(-5)
                 else:
                     px.set_dir_servo_angle(0)
+    print(str(pulse_count - initial_pulse)+"initial tick")
     outHandle()
 
 def end():
@@ -519,11 +492,13 @@ def end():
                     px.set_dir_servo_angle(-5)
                 else:
                     px.set_dir_servo_angle(0)
+    print(str(pulse_count - initial_pulse))
     px.stop()
     manual_control()
     
 def left():
-    global orientation
+    global orientation, pulse_count
+    initial_pulse = 0
     if orientation == 0:
         orientation = 3
     else:
@@ -554,6 +529,7 @@ def left():
             if (euler_angle is not None):
                 #db.child("traxxas").child("ID5").update({"Orientation":euler_angle})
                 if euler_angle >= boundmin and euler_angle <= boundmax:
+                    print(str(pulse_count - initial_pulse))
                     straight()
         #print(euler_angle)
             
@@ -569,7 +545,8 @@ def left():
         #if gm_state != 'stop':
             
 def right():
-    global orientation
+    global orientation, pulse_count
+    initial_pulse = 0
     
     print('right')
     steer = 35
@@ -602,7 +579,7 @@ def right():
             if (euler_angle is not None):
 #                 db.child("traxxas").child("ID5").update({"Orientation":euler_angle})
                 if euler_angle >= boundmin and euler_angle <= boundmax:
-            
+                    print(str(pulse_count - initial_pulse))
             #db.child("pi").update({"orientation":orientation})
                     straight()
         #print(euler_angle)
@@ -638,7 +615,7 @@ def take_photo():
     print('\nphoto save as %s%s.jpg'%(path,name))
 
 def manual_control():
-    global direction_index, orientation, direction_array
+    global direction_index, orientation, direction_array, distance_travel
     orientation = 0
     movement = 0
     speed = 0
@@ -650,6 +627,7 @@ def manual_control():
     sleep(2)  # wait for startup
 
     while True:
+        
         if (sensor.euler[0] is not None):
             euler_angle = sensor.euler[0]
             if (euler_angle is not None):
@@ -746,10 +724,13 @@ def manual_control():
 
 if __name__=='__main__':
     try:
+        distance_thread = threading.Thread(target=calculate_distance)
+        distance_thread.start()
         while sensor.calibration_status[3] != 3:
             print(sensor.calibrated)
             print(sensor.calibration_status)
         sleep(5)
+        
         manual_control()
         
 
@@ -766,6 +747,7 @@ if __name__=='__main__':
     finally:
         print('manual control')
         manual_control()
+
 
 
 
