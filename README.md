@@ -1,7 +1,7 @@
 # Autonomous-Vehicle-Grid
 Prototype for a fully self-driving car on a cartesian street grid.
 George Mason University College of Engineering and Computation 
-Electrical and Computer Engineering 
+- Electrical and Computer Engineering 
 
 Senior Design
 
