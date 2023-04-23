@@ -163,13 +163,8 @@ def Calib_ang():
 
 
 def outHandle():
-    
     global last_state, current_state, direction_index, orientation
-    #read the firebase descision
-    #db.child("Traxxas").child("ID5").set(orientation)
-
     traff_sense = int(db.child("ID6").child("location").child("traffic sensor").get().val())
-    
     print(str(traff_sense) + " traffic Sensor")
     if  traff_sense == 7 or traff_sense == 6 or traff_sense == 11 or traff_sense == 10:
         traffic_read = 1
@@ -180,18 +175,23 @@ def outHandle():
     immediate_direction = direction_array[direction_index]
     direction_index += 1
     
-    #if firebase gives 0 it turns left
-
     if immediate_direction == 'left':
-        left()
-    #firebase is 1 go straight
+        
+        if traffic_read == 0:
+            left()
+        else:
+            left_read(traff_sense)
+
     elif immediate_direction == 'straight':
         if traffic_read == 0:
             straight_call()
         else:
             straight_read(traff_sense)
     elif immediate_direction == 'right':
-        right()
+        if traffic_read == 0: 
+            right()
+        else:
+            right_read(traff_sense)
     elif immediate_direction == 'end':
         end()
     elif immediate_direction == 'south' or 'north' or 'east' or 'west':
@@ -199,6 +199,7 @@ def outHandle():
         initial_straight()
     else:
         left()
+    
     
     
            
@@ -214,6 +215,208 @@ def orientate():
     elif orientation == 3:
         innit_angle = 301
     return innit_angle
+
+def right_read(traff_sense):
+    global orientation, pulse_count, extra_ticks
+    initial_pulse = 0
+    if orientation == 3:
+        orientation = 0
+    else:
+        orientation +=1
+    if orientation == 0:
+        boundmin = 22
+        boundmax = 28
+
+    elif orientation == 1:
+        boundmin = 112
+        boundmax = 118
+        
+    elif orientation == 2:
+        boundmin = 202
+        boundmax = 208
+        
+    elif orientation == 3:
+        boundmin = 292
+        boundmax = 298
+
+    if orientation == 0:
+        #westbound
+        if traff_sense == 12:
+            #traff 11
+            trafficlight_str = "11"
+            trigger = "south"
+        elif traff_sense == 11:
+            #traff 10
+            trafficlight_str = "10"
+            trigger = "north"
+    elif orientation == 1:
+        #northbound
+        if traff_sense == 14:
+            #traff 10
+            trafficlight_str = "10"
+            trigger = "west"
+        elif traff_sense == 10:
+            #traff 6
+            trafficlight_str = "6"
+            trigger = "east"
+    elif orientation == 2:
+        #eastbound
+        if traff_sense == 5:
+            #traff 6
+            trafficlight_str = "6"
+            trigger = "north"
+        elif traff_sense == 6:
+            #traff 7
+            trafficlight_str = "7"
+            trigger = "south"
+    elif orientation == 3:
+        #southbound
+        if traff_sense == 3:
+            #traff 7
+            trafficlight_str = "7"
+            trigger = "east"
+        elif traff_sense == 7:
+            #traff 11 
+            trafficlight_str = "11"
+            trigger = "west"
+    
+    LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
+    if trigger == LED_STATE:
+        print("stopped at" + trafficlight_str + "for\n")
+        px.stop()
+        while True:
+            LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
+            #print(LED_STATE)
+            if LED_STATE == trigger:
+                time_stopped+=1
+            else:
+                print(str(time_stopped) + "ticks")
+                time_stopped = 0
+                px.forward(5)
+                print(str(pulse_count - initial_pulse))
+                extra_ticks = check_pulses - (pulse_count - initial_pulse)
+                break
+    
+    
+    
+    print('right read')
+    steer = 35
+    px.set_dir_servo_angle(steer)
+    px.forward(5)
+    
+    
+    while True:
+        if (sensor.euler[0] is not None):
+            euler_angle = sensor.euler[0]
+            if (euler_angle is not None):
+                if euler_angle >= boundmin and euler_angle <= boundmax:
+                    print(str(pulse_count - initial_pulse))
+                    straight()
+       
+        if GPIO.input(left_wing) == 1 or GPIO.input(right_wing) == 1:
+            escapelines()
+            px.set_dir_servo_angle(steer)
+        
+           
+def left_read(traff_sense):
+    global orientation, pulse_count, extra_ticks
+    initial_pulse = 0
+    if orientation == 0:
+        orientation = 3
+    else:
+        orientation -=1
+    
+    if orientation == 0:
+        boundmin = 22
+        boundmax = 28
+        
+    elif orientation == 1:
+        boundmin = 112
+        boundmax = 118
+        
+    elif orientation == 2:
+        boundmin = 202
+        boundmax = 208
+        
+    elif orientation == 3:
+        boundmin = 292
+        boundmax = 298
+    
+    if orientation == 0:
+        #westbound
+        if traff_sense == 12:
+            #traff 11
+            trafficlight_str = "11"
+            trigger = "south"
+        elif traff_sense == 11:
+            #traff 10
+            trafficlight_str = "10"
+            trigger = "north"
+    elif orientation == 1:
+        #northbound
+        if traff_sense == 14:
+            #traff 10
+            trafficlight_str = "10"
+            trigger = "west"
+        elif traff_sense == 10:
+            #traff 6
+            trafficlight_str = "6"
+            trigger = "east"
+    elif orientation == 2:
+        #eastbound
+        if traff_sense == 5:
+            #traff 6
+            trafficlight_str = "6"
+            trigger = "north"
+        elif traff_sense == 6:
+            #traff 7
+            trafficlight_str = "7"
+            trigger = "south"
+    elif orientation == 3:
+        #southbound
+        if traff_sense == 3:
+            #traff 7
+            trafficlight_str = "7"
+            trigger = "east"
+        elif traff_sense == 7:
+            #traff 11 
+            trafficlight_str = "11"
+            trigger = "west"
+    
+    LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
+    if trigger == LED_STATE:
+        print("stopped at" + trafficlight_str + "for\n")
+        px.stop()
+        while True:
+            LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
+            #print(LED_STATE)
+            if LED_STATE == trigger:
+                time_stopped+=1
+            else:
+                print(str(time_stopped) + "ticks")
+                time_stopped = 0
+                px.forward(5)
+                print(str(pulse_count - initial_pulse))
+                extra_ticks = check_pulses - (pulse_count - initial_pulse)
+                break
+    print('left read')
+    steer = -35
+    px.set_dir_servo_angle(steer)
+    px.forward(5)
+    while True:
+        if (sensor.euler[0] is not None):
+            euler_angle = sensor.euler[0]
+            if (euler_angle is not None):
+                if euler_angle >= boundmin and euler_angle <= boundmax:
+                    print(str(pulse_count - initial_pulse))
+                    straight()
+       
+        if GPIO.input(left_wing) == 1 or GPIO.input(right_wing) == 1:
+            escapelines()
+            px.set_dir_servo_angle(steer)
+        
+           
+
 
 def straight_read(traff_sense):
     #straight method implemented with orientation global var.
