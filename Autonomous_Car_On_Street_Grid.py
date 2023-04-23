@@ -106,7 +106,7 @@ def calculate_distance():
     global distance_travel
     global pulse_count
     while True:
-        distance_travel = (pulse_count / 20.0)*(0.0635*3.141592653589793)
+        distance_travel = (pulse_count / 20.0)*(0.0635* (np.pi))
         db.child("ID6").child("data").update({"distance":distance_travel})
         time.sleep(0.1)
 
