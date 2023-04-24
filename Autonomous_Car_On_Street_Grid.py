@@ -74,10 +74,18 @@ left_wing = 4
 right_wing = 17
 steer = 0
 direction_index = 0
-wheel_enc = 22
 extra_ticks = 0
+
 #direction_array = ['south', 'left', 'straight' ,'right','left','straight' ,'end']
 direction_array = db.child("overhead").child('path').get().val()
+
+# Constants
+SLITS = 20
+WHEEL_DIAMETER = 0.0635 # meters
+CIRCUMFERENCE = WHEEL_DIAMETER * 3.14159
+SECONDS_PER_MINUTE = 60
+velocity = 0
+wheel_enc = 22
 
 if direction_array[0] == 'north':
     orientation = 1
@@ -87,6 +95,7 @@ elif direction_array[0] == 'south':
     orientation = 3
 elif direction_array[0] == 'west':
     orientation = 0
+
 
 pulse_count = 0
 total_distance = 0
@@ -103,6 +112,13 @@ def pulse_handler(channel):
 GPIO.add_event_detect(wheel_enc, GPIO.RISING, callback=pulse_handler)
 
 def calculate_distance():
+    global pulse_count, velocity
+    while True:
+        time.sleep(1) # 1 second interval
+        if pulse_count > 0:
+            rpm = pulse_count * SECONDS_PER_MINUTE / SLITS
+            velocity = rpm * CIRCUMFERENCE / SECONDS_PER_MINUTE
+            pulse_count = 0    
     global distance_travel
     global pulse_count
     while True:
@@ -615,7 +631,7 @@ def take_photo():
     print('\nphoto save as %s%s.jpg'%(path,name))
 
 def manual_control():
-    global direction_index, orientation, direction_array, distance_travel
+    global direction_index, orientation, direction_array, distance_travel, velocity
     orientation = 0
     movement = 0
     speed = 0
@@ -627,7 +643,7 @@ def manual_control():
     sleep(2)  # wait for startup
 
     while True:
-        
+        print("Instantaneous velocity: %.4f m/s" % velocity)
         if (sensor.euler[0] is not None):
             euler_angle = sensor.euler[0]
             if (euler_angle is not None):
@@ -725,10 +741,13 @@ def manual_control():
 if __name__=='__main__':
     try:
         distance_thread = threading.Thread(target=calculate_distance)
+        distance_thread.daemon = True # Make the thread a daemon, so it doesn't prevent the program from exiting
         distance_thread.start()
+        
         while sensor.calibration_status[3] != 3:
             print(sensor.calibrated)
             print(sensor.calibration_status)
+        print("done")
         sleep(5)
         
         manual_control()
