@@ -106,7 +106,7 @@ def calculate_distance():
     global distance_travel
     global pulse_count
     while True:
-        distance_travel = (pulse_count / 20.0)*(0.0635* (np.pi))
+        distance_travel = (pulse_count / 20.0)*(0.0635*3.141592653589793)
         db.child("ID6").child("data").update({"distance":distance_travel})
         time.sleep(0.1)
 
@@ -163,8 +163,11 @@ def Calib_ang():
 
 
 def outHandle():
+    
     global last_state, current_state, direction_index, orientation
+
     traff_sense = int(db.child("ID6").child("location").child("traffic sensor").get().val())
+    
     print(str(traff_sense) + " traffic Sensor")
     if  traff_sense == 7 or traff_sense == 6 or traff_sense == 11 or traff_sense == 10:
         traffic_read = 1
@@ -175,6 +178,7 @@ def outHandle():
     immediate_direction = direction_array[direction_index]
     direction_index += 1
     
+
     if immediate_direction == 'left':
         
         if traffic_read == 0:
@@ -201,7 +205,6 @@ def outHandle():
         left()
     
     
-    
            
     #steer the direction until finding the new line
 def orientate():
@@ -216,9 +219,55 @@ def orientate():
         innit_angle = 301
     return innit_angle
 
+
 def right_read(traff_sense):
     global orientation, pulse_count, extra_ticks
+    time_stopped = 0
     initial_pulse = 0
+    trafficlight_str = '0'
+    trigger = "none"
+    if orientation == 0:
+        #westbound
+        if traff_sense == 11:
+            #traff 11
+            trafficlight_str = "11"
+            trigger = "south"
+        elif traff_sense == 10:
+            #traff 10
+            trafficlight_str = "10"
+            trigger = "north"
+    elif orientation == 1:
+        #northbound
+        if traff_sense == 10:
+            #traff 10
+            trafficlight_str = "10"
+            trigger = "west"
+        elif traff_sense == 6:
+            #traff 6
+            trafficlight_str = "6"
+            trigger = "east"
+    elif orientation == 2:
+        #eastbound
+        if traff_sense == 6:
+            #traff 6
+            trafficlight_str = "6"
+            trigger = "north"
+        elif traff_sense == 7:
+            #traff 7
+            trafficlight_str = "7"
+            trigger = "south"
+    elif orientation == 3:
+        #southbound
+        if traff_sense == 7:
+            #traff 7
+            trafficlight_str = "7"
+            trigger = "east"
+        elif traff_sense == 11:
+            #traff 11 
+            trafficlight_str = "11"
+            trigger = "west"
+    
+    
     if orientation == 3:
         orientation = 0
     else:
@@ -239,48 +288,9 @@ def right_read(traff_sense):
         boundmin = 292
         boundmax = 298
 
-    if orientation == 0:
-        #westbound
-        if traff_sense == 12:
-            #traff 11
-            trafficlight_str = "11"
-            trigger = "south"
-        elif traff_sense == 11:
-            #traff 10
-            trafficlight_str = "10"
-            trigger = "north"
-    elif orientation == 1:
-        #northbound
-        if traff_sense == 14:
-            #traff 10
-            trafficlight_str = "10"
-            trigger = "west"
-        elif traff_sense == 10:
-            #traff 6
-            trafficlight_str = "6"
-            trigger = "east"
-    elif orientation == 2:
-        #eastbound
-        if traff_sense == 5:
-            #traff 6
-            trafficlight_str = "6"
-            trigger = "north"
-        elif traff_sense == 6:
-            #traff 7
-            trafficlight_str = "7"
-            trigger = "south"
-    elif orientation == 3:
-        #southbound
-        if traff_sense == 3:
-            #traff 7
-            trafficlight_str = "7"
-            trigger = "east"
-        elif traff_sense == 7:
-            #traff 11 
-            trafficlight_str = "11"
-            trigger = "west"
-    
     LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
+    print(str(LED_STATE)+ "led_state")
+    print(trigger)
     if trigger == LED_STATE:
         print("stopped at" + trafficlight_str + "for\n")
         px.stop()
@@ -293,8 +303,7 @@ def right_read(traff_sense):
                 print(str(time_stopped) + "ticks")
                 time_stopped = 0
                 px.forward(5)
-                print(str(pulse_count - initial_pulse))
-                extra_ticks = check_pulses - (pulse_count - initial_pulse)
+                
                 break
     
     
@@ -320,7 +329,53 @@ def right_read(traff_sense):
            
 def left_read(traff_sense):
     global orientation, pulse_count, extra_ticks
+    time_stopped = 0
     initial_pulse = 0
+    trafficlight_str = '0'
+    trigger = "none"
+   
+    if orientation == 0:
+        #westbound
+        if traff_sense == 11:
+            #traff 11
+            trafficlight_str = "11"
+            trigger = "south"
+        elif traff_sense == 10:
+            #traff 10
+            trafficlight_str = "10"
+            trigger = "north"
+    elif orientation == 1:
+        #northbound
+        if traff_sense == 10:
+            #traff 10
+            trafficlight_str = "10"
+            trigger = "west"
+        elif traff_sense == 6:
+            #traff 6
+            trafficlight_str = "6"
+            trigger = "east"
+    elif orientation == 2:
+        #eastbound
+        if traff_sense == 6:
+            #traff 6
+            trafficlight_str = "6"
+            trigger = "north"
+        elif traff_sense == 7:
+            #traff 7
+            trafficlight_str = "7"
+            trigger = "south"
+    elif orientation == 3:
+        #southbound
+        if traff_sense == 7:
+            #traff 7
+            trafficlight_str = "7"
+            trigger = "east"
+        elif traff_sense == 11:
+            #traff 11 
+            trafficlight_str = "11"
+            trigger = "west"
+    
+
     if orientation == 0:
         orientation = 3
     else:
@@ -341,49 +396,11 @@ def left_read(traff_sense):
     elif orientation == 3:
         boundmin = 292
         boundmax = 298
-    
-    if orientation == 0:
-        #westbound
-        if traff_sense == 12:
-            #traff 11
-            trafficlight_str = "11"
-            trigger = "south"
-        elif traff_sense == 11:
-            #traff 10
-            trafficlight_str = "10"
-            trigger = "north"
-    elif orientation == 1:
-        #northbound
-        if traff_sense == 14:
-            #traff 10
-            trafficlight_str = "10"
-            trigger = "west"
-        elif traff_sense == 10:
-            #traff 6
-            trafficlight_str = "6"
-            trigger = "east"
-    elif orientation == 2:
-        #eastbound
-        if traff_sense == 5:
-            #traff 6
-            trafficlight_str = "6"
-            trigger = "north"
-        elif traff_sense == 6:
-            #traff 7
-            trafficlight_str = "7"
-            trigger = "south"
-    elif orientation == 3:
-        #southbound
-        if traff_sense == 3:
-            #traff 7
-            trafficlight_str = "7"
-            trigger = "east"
-        elif traff_sense == 7:
-            #traff 11 
-            trafficlight_str = "11"
-            trigger = "west"
-    
+
+
     LED_STATE = db.child("Lights").child(trafficlight_str).get().val()
+    print(str(LED_STATE)+ "led_state")
+    print(trigger)
     if trigger == LED_STATE:
         print("stopped at" + trafficlight_str + "for\n")
         px.stop()
@@ -396,8 +413,7 @@ def left_read(traff_sense):
                 print(str(time_stopped) + "ticks")
                 time_stopped = 0
                 px.forward(5)
-                print(str(pulse_count - initial_pulse))
-                extra_ticks = check_pulses - (pulse_count - initial_pulse)
+                
                 break
     print('left read')
     steer = -35
@@ -442,41 +458,41 @@ def straight_read(traff_sense):
         
         if orientation == 0:
             #westbound
-            if traff_sense == 12:
+            if traff_sense == 11:
                 #traff 11
                 trafficlight_str = "11"
                 trigger = "south"
-            elif traff_sense == 11:
+            elif traff_sense == 10:
                 #traff 10
                 trafficlight_str = "10"
                 trigger = "north"
         elif orientation == 1:
             #northbound
-            if traff_sense == 14:
+            if traff_sense == 10:
                 #traff 10
                 trafficlight_str = "10"
                 trigger = "west"
-            elif traff_sense == 10:
+            elif traff_sense == 6:
                 #traff 6
                 trafficlight_str = "6"
                 trigger = "east"
         elif orientation == 2:
             #eastbound
-            if traff_sense == 5:
+            if traff_sense == 6:
                 #traff 6
                 trafficlight_str = "6"
                 trigger = "north"
-            elif traff_sense == 6:
+            elif traff_sense == 7:
                 #traff 7
                 trafficlight_str = "7"
                 trigger = "south"
         elif orientation == 3:
             #southbound
-            if traff_sense == 3:
+            if traff_sense == 7:
                 #traff 7
                 trafficlight_str = "7"
                 trigger = "east"
-            elif traff_sense == 7:
+            elif traff_sense == 11:
                 #traff 11 
                 trafficlight_str = "11"
                 trigger = "west"
@@ -617,7 +633,7 @@ def straight():
                     px.set_dir_servo_angle(-5)
                 else:
                     px.set_dir_servo_angle(0)
-    print(str(pulse_count - initial_pulse)+"total ticks after read")
+    print(str(pulse_count - initial_pulse)+" total ticks after read")
     outHandle()
     
 def initial_straight():
@@ -707,6 +723,7 @@ def left():
     else:
         orientation -=1
     if orientation == 0:
+        
         boundmin = 22
         boundmax = 28
         
